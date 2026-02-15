@@ -15,8 +15,6 @@ app.use(express.json());
    🔐 FIREBASE ADMIN SETUP
 ============================== */
 
-const admin = require("firebase-admin");
-
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
 admin.initializeApp({
@@ -24,7 +22,6 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
-
 
 /* ==============================
    💳 RAZORPAY SETUP
@@ -42,7 +39,7 @@ const razorpay = new Razorpay({
 app.post("/create-order", async (req, res) => {
   try {
     const options = {
-      amount: 100 * 100, // ₹100 in paise
+      amount: 100 * 100,
       currency: "INR",
       receipt: "receipt_" + Date.now(),
     };
@@ -88,7 +85,6 @@ app.get("/get-note/:filename/:uid", async (req, res) => {
   const { filename, uid } = req.params;
 
   try {
-    // 🔍 Check user in Firestore
     const userDoc = await db.collection("users").doc(uid).get();
 
     if (!userDoc.exists) {
@@ -96,19 +92,16 @@ app.get("/get-note/:filename/:uid", async (req, res) => {
     }
 
     if (!userDoc.data().isPaid) {
-      return res.status(403).json({ error: "Access denied. Payment required." });
+      return res.status(403).json({ error: "Payment required" });
     }
 
-    // 📁 Construct file path
     const filePath = path.join(__dirname, "notes", filename);
 
-    // 🔎 Check file exists
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: "File not found" });
     }
 
-    // 🔐 Send file
-    res.sendFile(filePath);
+    res.download(filePath); // 👈 Download enabled
   } catch (error) {
     console.error("File access error:", error);
     res.status(500).json({ error: "Server error" });
@@ -119,6 +112,8 @@ app.get("/get-note/:filename/:uid", async (req, res) => {
    🚀 START SERVER
 ============================== */
 
-app.listen(5000, () => {
-  console.log("🚀 Server running on port 5000");
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
